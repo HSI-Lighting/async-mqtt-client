@@ -23,6 +23,9 @@ HSI patches on top (branch `hsi`):
 `<status>/Availability`. Constants: `HSI_MQTT_QOS_IN` (1, subscribe to `In`), `HSI_MQTT_QOS_STATUS` (1),
 `HSI_MQTT_OFFLINE`. All strings passed must outlive the client (the library keeps pointers, not copies).
 
+No `dependencies` in `library.json`: each product lists its own AsyncTCP (KNX: mathieucarbou v3.3.2, Modbus:
+ESP32Async v3.5.0). Otherwise PlatformIO pulls a second AsyncTCP from the registry next to the product's one.
+
 Rules for the products using it (all learned in the field, see each product's CHANGES):
 - call `connect()` only from the main loop / own task, never from a timer callback (DMX/90111: RTC_SW_CPU_RST);
 - never block inside the callbacks: they run on the AsyncTCP task (DMX 3954e13);
