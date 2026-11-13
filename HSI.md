@@ -1,0 +1,24 @@
+# HSI fork of AsyncMqttClient
+
+The one MQTT library for the HSI Modbus, DMX and KNX gateways (and, if decided, Morteza 90111).
+Use the tag, never a branch:
+
+    lib_deps = https://github.com/HSI-Lighting/async-mqtt-client.git#hsi-v1.0.0
+
+Base: marvinroger/async-mqtt-client `develop` @ e9cc6ca (2026-10-28). It already contains the fix from
+fatemiAmir/async-mqtt-client 95414a2 (ping deadline erased by sends), in a fuller form (upstream 6337097,
+"Allow recovery from silent MQTT connection loss", which also handles the AsyncTCP timeout path).
+
+HSI patches on top (branch `hsi`):
+
+| # | Where | Bug | Came from |
+|---|---|---|---|
+| 1 | `_onData` | unknown packet type or empty data -> null-pointer crash | Modbus 90122 lib copy |
+| 2 | `connect()` | connect refused at once -> stuck CONNECTING, never reconnects | Modbus 90122 2.0.8 |
+
+Rules for the products using it (all learned in the field, see each product's CHANGES):
+- call `connect()` only from the main loop / own task, never from a timer callback (DMX/90111: RTC_SW_CPU_RST);
+- never block inside the callbacks: they run on the AsyncTCP task (DMX 3954e13);
+- `setServer(host, ...)` keeps the pointer, not a copy: keep the string alive (90111, DMX).
+
+To take a newer upstream: merge marvinroger `develop` into `hsi`, keep the two patches, bench-test, new tag.

@@ -321,9 +321,12 @@ void AsyncMqttClient::_onData(char* data, size_t len) {
         }
         break;
       case AsyncMqttClientInternals::BufferState::VARIABLE_HEADER:
+        // HSI patch 1: an unknown packet type leaves no parser; skip the bytes instead of a null-pointer crash.
+        if (!data || !_currentParsedPacket) { currentBytePosition = len; break; }
         _currentParsedPacket->parseVariableHeader(data, len, &currentBytePosition);
         break;
       case AsyncMqttClientInternals::BufferState::PAYLOAD:
+        if (!data || !_currentParsedPacket) { currentBytePosition = len; break; }
         _currentParsedPacket->parsePayload(data, len, &currentBytePosition);
         break;
       default:
@@ -724,11 +727,9 @@ void AsyncMqttClient::connect() {
     _client.connect(_host, _port, _secure);
   }
 #else
-  if (_useIp) {
-    _client.connect(_ip, _port);
-  } else {
-    _client.connect(_host, _port);
-  }
+  // HSI patch 2: a connect refused at once gets no AsyncTCP callback; report it as a disconnect, or the client stays
+  // CONNECTING and every later connect() is ignored (the gateway never reconnects until a reboot).
+  if (!(_useIp ? _client.connect(_ip, _port) : _client.connect(_host, _port))) _onDisconnect();
 #endif
 }
 
