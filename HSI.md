@@ -15,6 +15,7 @@ HSI patches on top (branch `hsi`):
 |---|---|---|---|
 | 1 | `_onData` | unknown packet type or empty data -> null-pointer crash | Modbus 90122 lib copy |
 | 2 | `connect()` | connect refused at once -> stuck CONNECTING, never reconnects | Modbus 90122 2.0.8 |
+| 3 | `AsyncMqttClient.cpp` | one info log line per publish/ack (~1 line/s at CORE_DEBUG_LEVEL 3), partly from the AsyncTCP task; `-D HSI_MQTT_VERBOSE` brings them back | KNX bench 2026-11-13 |
 
 ## Connection profile: `#include <HsiMqtt.h>`
 

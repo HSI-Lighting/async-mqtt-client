@@ -1,5 +1,14 @@
 #include "AsyncMqttClient.hpp"
 
+// HSI patch 3: no per-packet info/verbose logs (one line per publish/ack at CORE_DEBUG_LEVEL 3, partly from the AsyncTCP
+// task). Warnings and errors stay. Define HSI_MQTT_VERBOSE to get them back for debugging.
+#ifndef HSI_MQTT_VERBOSE
+#undef log_i
+#define log_i(...) do {} while (0)
+#undef log_v
+#define log_v(...) do {} while (0)
+#endif
+
 AsyncMqttClient::AsyncMqttClient()
 : _client()
 , _head(nullptr)
