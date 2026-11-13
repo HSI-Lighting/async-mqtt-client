@@ -16,6 +16,13 @@ HSI patches on top (branch `hsi`):
 | 1 | `_onData` | unknown packet type or empty data -> null-pointer crash | Modbus 90122 lib copy |
 | 2 | `connect()` | connect refused at once -> stuck CONNECTING, never reconnects | Modbus 90122 2.0.8 |
 
+## Connection profile: `#include <HsiMqtt.h>`
+
+`hsiMqttConfigure(client, {host, port, clientId, user, pass, willTopic})` sets the settings every HSI gateway shares
+(unified MQTT spec §5.2): keepalive 30 s, clean session, Last Will `{"state":"offline"}` QoS 1 retained on
+`<status>/Availability`. Constants: `HSI_MQTT_QOS_IN` (1, subscribe to `In`), `HSI_MQTT_QOS_STATUS` (1),
+`HSI_MQTT_OFFLINE`. All strings passed must outlive the client (the library keeps pointers, not copies).
+
 Rules for the products using it (all learned in the field, see each product's CHANGES):
 - call `connect()` only from the main loop / own task, never from a timer callback (DMX/90111: RTC_SW_CPU_RST);
 - never block inside the callbacks: they run on the AsyncTCP task (DMX 3954e13);
