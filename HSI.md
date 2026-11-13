@@ -33,3 +33,26 @@ Rules for the products using it (all learned in the field, see each product's CH
 - `setServer(host, ...)` keeps the pointer, not a copy: keep the string alive (90111, DMX).
 
 To take a newer upstream: merge marvinroger `develop` into `hsi`, keep the two patches, bench-test, new tag.
+
+## Moving a product onto this fork (for each product's own agent)
+
+1. `platformio.ini`: replace the old entry (vendored `lib/AsyncMqttClient`, `fatemiAmir/async-mqtt-client`,
+   `marvinroger/async-mqtt-client`, or `knolleary/PubSubClient`) with
+   `https://github.com/HSI-Lighting/async-mqtt-client.git#<tag>`. Delete a vendored `lib/AsyncMqttClient` folder.
+   Keep the product's own AsyncTCP entry. Check `pio pkg list`: exactly ONE AsyncTCP.
+2. Replace the product's own `setServer / setClientId / setCredentials / setKeepAlive / setCleanSession / setWill`
+   block with one `hsiMqttConfigure(client, {...})` call; the strings it gets must be static (pointers are kept).
+3. Subscribe to `In` with `HSI_MQTT_QOS_IN`. Publish `Status/Availability` with `HSI_MQTT_QOS_STATUS`, retained;
+   take `rtt_ms` from `onPublish(packetId)` of that publish; before a planned restart publish `HSI_MQTT_OFFLINE`
+   (QoS 1, retained) and wait for its `onPublish` (max 1 s), spec §5.4.
+4. `publish()` returns 0 when the send queue (default 8 KB, `setMaxQueueSize`) or the heap is short: wait and retry
+   or keep the message, never assume it went. Size the queue for the biggest single publish (KNX: status reply).
+5. Callbacks run on the AsyncTCP task: copy what you need and hand it to your own task/loop. Never block, never
+   wait for an ACK there. A message can arrive in pieces (`index`, `total`): collect them.
+6. connect() from your own task or loop() only; a connect gives its result as onConnect / onDisconnect (patch 2
+   makes a refused connect report onDisconnect). Add your own attempt time limit (KNX: 20 s -> `disconnect(true)`).
+7. Bench before release: >= 30 broker stop/start cycles (gaps 0.5-15 s) all reconnect; outage replay; a planned
+   restart shows `offline` at once. KNX's script: `hsi-ops/tests/knx-stress/t_mqtt_lib.py`.
+
+Reference implementation: KNX_Gateway_Integration `firmware/fw_network/src/MQTTTask.cpp` + `Availability.cpp`
+(commit 4f9b4e7 and later).
